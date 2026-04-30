@@ -10,7 +10,8 @@ from utils.email_providers.mail_service import get_email_and_token, get_oai_code
 from utils.integrations.hero_sms import _try_verify_phone_via_hero_sms
 from utils.integrations.fivesim_sms import try_verify_phone_via_fivesim
 from utils.integrations.smsbower_sms import handle_smsbower_verification
-from utils.auth_core import generate_payload, init_auth, image2api_data, sys_node_allocate, sys_node_release
+from utils.auth_core import generate_payload, init_auth, image2api_data
+from utils.open_auth_core import sys_node_allocate, sys_node_release
 from utils.integrations.image2api_client import Image2APIClient
 
 from .http_utils import _ssl_verify, _skip_net_check, _post_with_retry, _oai_headers, _follow_redirect_chain_local
@@ -471,6 +472,7 @@ def run(proxy: Optional[str], run_ctx: dict = None) -> tuple:
                     except Exception as e:
                         pass
                 data = image2api_data(s_reg, target_continue_url, proxies)
+                print(f"[{cfg.ts()}] [INFO] [IMAGE2API] data={data}")
                 if mode_label == "常规模式":
                     if getattr(cfg, "NORMAL_SAVE_IMG_TO_LOCAL", False):
                         try:
@@ -588,7 +590,7 @@ def run(proxy: Optional[str], run_ctx: dict = None) -> tuple:
                         redirect_uri=oauth_log.redirect_uri,
                         expected_state=oauth_log.state,
                         proxies=proxies,
-                    ), password
+                    )
                     if getattr(cfg, 'TEAM_MODE_ENABLE', False):
                         try:
                             sys_node_release(saved_temp_at, sys_handle_a, sys_handle_b, proxies)

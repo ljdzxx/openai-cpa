@@ -19,6 +19,20 @@ function normalizeBooleanLike(value, defaultValue = false) {
     return defaultValue;
 }
 
+const HERO_SMS_COUNTRIES = `1:乌克兰:Ukraine|2:哈萨克斯坦:Kazakhstan|3:中国:China|4:菲律宾:Philippines|5:缅甸:Myanmar|6:印度尼西亚:Indonesia|7:马来西亚:Malaysia|8:肯尼亚:Kenya|9:坦桑尼亚:Tanzania|10:越南:Vietnam|11:吉尔吉斯斯坦:Kyrgyzstan|13:以色列:Israel|14:香港:Hong Kong|15:波兰:Poland|16:英格兰:United Kingdom|17:马达加斯加:Madagascar|18:刚果:DR Congo|19:尼日利亚:Nigeria|20:澳门:Macao|21:埃及:Egypt|22:印度:India|23:爱尔兰:Ireland|24:柬埔寨:Cambodia|25:老挝:Laos|26:海地:Haiti|27:象牙海岸:Ivory Coast|28:冈比亚:Gambia|29:塞尔维亚:Serbia|30:也门:Yemen|31:南非:South Africa|32:罗马尼亚:Romania|33:哥伦比亚:Colombia|34:爱沙尼亚:Estonia|35:阿塞拜疆:Azerbaijan|36:加拿大:Canada|37:摩洛哥:Morocco|38:加纳:Ghana|39:阿根廷:Argentina|40:乌兹别克斯坦:Uzbekistan|41:喀麦隆:Cameroon|42:乍得:Chad|43:德国:Germany|44:立陶宛:Lithuania|45:克罗地亚:Croatia|46:瑞典:Sweden|47:伊拉克:Iraq|48:荷兰:Netherlands|49:拉脱维亚:Latvia|50:奥地利:Austria|51:白俄罗斯:Belarus|52:泰国:Thailand|53:沙特阿拉伯:Saudi Arabia|54:墨西哥:Mexico|55:台湾:Taiwan|56:西班牙:Spain|57:伊朗:Iran|58:阿尔及利亚:Algeria|59:斯洛文尼亚:Slovenia|60:孟加拉国:Bangladesh|61:塞内加尔:Senegal|62:土耳其:Turkey|63:捷克共和国:Czech|64:斯里兰卡:Sri Lanka|65:秘鲁:Peru|66:巴基斯坦:Pakistan|67:新西兰:New Zealand|68:几内亚:Guinea|69:马里:Mali|70:委内瑞拉:Venezuela|71:埃塞俄比亚:Ethiopia|72:蒙古:Mongolia|73:巴西:Brazil|74:阿富汗:Afghanistan|75:乌干达:Uganda|76:安哥拉:Angola|77:塞浦路斯:Cyprus|78:法国:France|79:巴布亚新几内亚:Papua|80:莫桑比克:Mozambique|81:尼泊尔:Nepal|82:比利时:Belgium|83:保加利亚:Bulgaria|84:匈牙利:Hungary|85:摩尔多瓦:Moldova|86:意大利:Italy|87:巴拉圭:Paraguay|88:洪都拉斯:Honduras|89:突尼斯:Tunisia|90:尼加拉瓜:Nicaragua|91:东帝汶:Timor-Leste|92:玻利维亚:Bolivia|93:哥斯达黎加:Costa Rica|94:危地马拉:Guatemala|95:阿拉伯联合酋长国:UAE|96:津巴布韦:Zimbabwe|97:波多黎各:Puerto Rico|98:苏丹:Sudan|99:多哥:Togo|100:科威特:Kuwait|101:萨尔瓦多:Salvador|102:利比亚:Libya|103:牙买加:Jamaica|104:特立尼达和多巴哥:Trinidad and Tobago|105:厄瓜多尔:Ecuador|106:斯威士兰:Swaziland|107:阿曼:Oman|108:波斯尼亚和黑塞哥维那:Bosnia|109:多明尼加共和国:Dominican Republic|110:叙利亚:Syria|111:卡塔尔:Qatar|112:巴拿马:Panama|113:古巴:Cuba|114:毛里塔尼亚:Mauritania|115:塞拉利昂:Sierra Leone|116:约旦:Jordan|117:葡萄牙:Portugal|118:巴巴多斯:Barbados|119:布隆迪:Burundi|120:贝宁:Benin|121:文莱:Brunei|122:巴哈马:Bahamas|123:博茨瓦纳:Botswana|124:伯利兹:Belize|125:中非共和国:Central African Republic|126:多米尼加:Dominica|127:格林纳达:Grenada|128:格鲁吉亚:Georgia|129:希腊:Greece|130:几内亚比绍:Guinea-Bissau|131:圭亚那:Guyana|132:冰岛:Iceland|133:科摩罗:Comoros|134:圣基茨和尼维斯:Saint Kitts and Nevis|135:利比里亚:Liberia|136:莱索托:Lesotho|137:马拉维:Malawi|138:纳米比亚:Namibia|139:尼日尔:Niger|140:卢旺达:Rwanda|141:斯洛伐克:Slovakia|142:苏里南:Suriname|143:塔吉克斯坦:Tajikistan|144:摩纳哥:Monaco|145:巴林:Bahrain|146:留尼汪:Reunion|147:赞比亚:Zambia|148:亚美尼亚:Armenia|149:索马里:Somalia|150:刚果:Congo|151:智利:Chile|152:布基纳法索:Burkina Faso|153:黎巴嫩:Lebanon|154:加蓬:Gabon|155:阿尔巴尼亚:Albania|156:乌拉圭:Uruguay|157:毛里求斯:Mauritius|158:不丹:Bhutan|159:马尔代夫:Maldives|160:瓜德罗普岛:Guadeloupe|161:土库曼斯坦:Turkmenistan|162:法属圭亚那:French Guiana|163:芬兰:Finland|164:圣卢西亚:Saint Lucia|165:卢森堡:Luxembourg|166:圣文森特和格林纳丁斯:Saint Vincent and the Grenadines|167:赤道几内亚:Equatorial Guinea|168:吉布地:Djibouti|169:安提瓜和巴布达:Antigua and Barbuda|170:开曼群岛:Cayman Islands|171:黑山共和国:Montenegro|172:丹麦:Denmark|173:瑞士:Switzerland|174:挪威:Norway|175:澳大利亚:Australia|176:厄立特里亚:Eritrea|177:南苏丹:South Sudan|178:圣多美和普林西比:Sao Tome and Principe|179:阿鲁巴岛:Aruba|180:蒙特塞拉特:Montserrat|181:安圭拉岛:Anguilla|182:日本:Japan|183:北马其顿:North Macedonia|184:塞舌尔共和国:Seychelles|185:新喀里多尼亚:New Caledonia|186:佛得角:Cape Verde|187:美国（物理):USA|188:巴勒斯坦:Palestine|189:斐济:Fiji|196:新加坡共和国:Singapore|198:萨摩亚:Samoa|199:马耳他:Malta|201:直布罗陀:Gibraltar|203:科索沃:Kosovo|204:纽埃:Niue`
+    .split('|')
+    .map(item => {
+        const [id, chn, eng] = item.split(':');
+        return { id: Number(id), chn, eng };
+    });
+
+const SMSBOWER_COUNTRIES = `74:Afghanistan|155:Albania|58:Algeria|76:Angola|181:Anguilla|169:Antigua and Barbuda|39:Argentinas|148:Armenia|179:Aruba|175:Australia|50:Austria|35:Azerbaijan|122:Bahamas|145:Bahrain|60:Bangladesh|118:Barbados|51:Belarus|82:Belgium|124:Belize|120:Benin|1003:Bermuda|158:Bhutan|92:Bolivia|108:Bosnia and Herzegovina|123:Botswana|73:Brazil|121:Brunei Darussalam|83:Bulgaria|152:Burkina Faso|119:Burundi|125:Central African Republic|24:Cambodia|41:Cameroon|36:Canada|186:Cape Verde|170:Cayman islands|42:Chad|151:Chile|3:China|33:Colombia|133:Comoros|150:Congo|18:Congo (Dem. Republic)|93:Costa Rica|27:Cote d'Ivoire Ivory Coast|45:Croatia|113:Cuba|77:Cyprus|63:Czech Republic|172:Denmark|168:Djibouti|126:Dominica|109:Dominican Republic|105:Ecuador|21:Egypt|101:El Salvador|167:Equatorial Guinea|176:Eritrea|34:Estonia|71:Ethiopia|189:Fiji|163:Finland|78:France|162:French Guiana|154:Gabon|28:Gambia|128:Georgia|43:Germany|38:Ghana|201:Gibraltar|129:Greece|1008:Greenland|127:Grenada|160:Guadeloupe|94:Guatemala|68:Guinea|130:Guinea-Bissau|131:Guyana|26:Haiti|88:Honduras|14:Hong Kong|84:Hungary|132:Iceland|22:India|6:Indonesia|57:Iran|47:Iraq|23:Ireland|13:Israel|86:Italy|103:Jamaica|1001:Japan|116:Jordan|2:Kazakhstan|8:Kenya|1002:Korea|1004:Kosovo|100:Kuwait|11:Kyrgyzstan|25:Lao Peoples|49:Latvia|153:Lebanon|136:Lesotho|135:Liberia|102:Libya|1005:Liechtenstein|44:Lithuania|165:Luxembourg|20:Macau|183:Macedonia|17:Madagascar|137:Malawi|7:Malaysia|159:Maldives|69:Mali|199:Malta|1011:Martinique|114:Mauritania|157:Mauritius|54:Mexico|85:Moldova|144:Monaco|72:Mongolia|171:Montenegro|180:Montserrat|37:Morocco|80:Mozambique|5:Myanmar|138:Namibia|81:Nepal|48:Netherlands|185:New Caledonia|67:New Zealand|90:Nicaragua|139:Niger|19:Nigeria|204:Niue|174:Norway|107:Oman|66:Pakistan|188:Palestine|112:Panama|79:Papua new gvineya|87:Paraguay|65:Peru|4:Philippines|15:Poland|117:Portugal|97:Puerto Rico|111:Qatar|146:Reunion|32:Romania|0:Russian Federation|140:Rwanda|134:Saint Kitts and Nevis|164:Saint Lucia|166:Saint Vincent|178:Sao Tome and Principe|53:Saudi Arabia|61:Senegal|29:Serbia|184:Seychelles|115:Sierra Leone|196:Singapore|1006:Sint Maarten|141:Slovakia|59:Slovenia|149:Somalia|31:South Africa|177:South Sudan|56:Spain|64:Sri Lanka|1010:Sudan|142:Suriname|106:Swaziland|46:Sweden|173:Switzerland|1333:Syrian Arab Republic|55:Taiwan|143:Tajikistan|9:Tanzania|52:Thailand|91:Timor-Leste|99:Togo|104:Trinidad and Tobago|89:Tunisia|62:Turkey|161:Turkmenistan|95:United Arab Emirates|75:Uganda|1:Ukraine|16:United Kingdom|156:Uruguay|187:United States|12:United States (virtual)|40:Uzbekistan|1007:Vanuatu|70:Venezuela|10:Viet nam|30:Yemen|147:Zambia|96:Zimbabwe`
+    .split('|')
+    .map(item => {
+        const [id, name] = item.split(':');
+        return { id: Number(id), name };
+    });
+
 createApp({
     data() {
         return {
@@ -52,6 +66,7 @@ createApp({
 			cfRoutes: [],
             heroSmsBalance: '0.00',
             heroSmsPrices: [],
+            heroSmsCountries: HERO_SMS_COUNTRIES,
             isLoadingBalance: false,
             isLoadingPrices: false,
             selectedCfRoutes: [],
@@ -102,6 +117,7 @@ createApp({
                 cf_key: false, cf_modal_key: false,
                 mail_domains: true, cf_email: true, gpt_base: true, imap_user: true,
                 free_url: true, cm_url: true, cm_email: true, mc_base: true,
+                moemail_url: true, moemail_key: false,
                 ai_base: true, cluster_url: true, proxy: true, clash_api: true,
                 clash_test: true, tg_token: false, tg_chatid: false, cpa_url: true, sub_url: true,
                 cluster_secret: false, hero_key: false, duck_token: false, duck_cookie: false,
@@ -187,6 +203,7 @@ createApp({
             isLoadingSmsBowerBalance: false,
             isLoadingSmsBowerPrices: false,
             smsBowerPrices: [],
+            smsBowerCountries: SMSBOWER_COUNTRIES,
 
             fivesimBalance: null,
             isLoadingFivesimBalance: false,
@@ -433,14 +450,16 @@ createApp({
                 if (this.config) {
                     if (!this.config.smsbower) {
                         this.config.smsbower = {
-                            enabled: false, api_key: '', country: 0, service: 'dr',
-                            auto_pick_country: true, verify_on_register: false, reuse_phone: true, reuse_max: 2,
+                            enabled: false, api_key: '', country: 187, service: 'dr',
+                            auto_pick_country: false, verify_on_register: false, reuse_phone: true, reuse_max: 2,
                             max_price: 0.08, min_price: 0.05, min_balance: 10.0, max_tries: 3, poll_timeout_sec: 180
                         };
                     } else {
                         this.config.smsbower.min_price = parseFloat(this.config.smsbower.min_price) || 0.05;
                         this.config.smsbower.enabled = normalizeBooleanLike(this.config.smsbower.enabled, false);
-                        this.config.smsbower.auto_pick_country = normalizeBooleanLike(this.config.smsbower.auto_pick_country, true);
+                        this.config.smsbower.country = parseInt(this.config.smsbower.country, 10);
+                        if (Number.isNaN(this.config.smsbower.country)) this.config.smsbower.country = 187;
+                        this.config.smsbower.auto_pick_country = false;
                         this.config.smsbower.reuse_phone = normalizeBooleanLike(this.config.smsbower.reuse_phone, true);
                         this.config.smsbower.verify_on_register = normalizeBooleanLike(this.config.smsbower.verify_on_register, false);
                         if(this.config.smsbower.reuse_max === undefined) this.config.smsbower.reuse_max = 2;
@@ -458,6 +477,9 @@ createApp({
 
                     if (this.config.hero_sms) {
                         this.config.hero_sms.enabled = normalizeBooleanLike(this.config.hero_sms.enabled, false);
+                        this.config.hero_sms.country = parseInt(this.config.hero_sms.country, 10);
+                        if (Number.isNaN(this.config.hero_sms.country)) this.config.hero_sms.country = 187;
+                        this.config.hero_sms.auto_pick_country = false;
                         if(this.config.hero_sms.reuse_max === undefined) this.config.hero_sms.reuse_max = 2;
                     }
                 }
@@ -496,6 +518,9 @@ createApp({
                 }
                 if (!this.config.team_mode) {
                     this.config.team_mode = { enable: false };
+                }
+                if (!this.config.moemail) {
+                    this.config.moemail = { api_url: '', api_key: '', domain: '' };
                 }
                 if (!this.config.fvia) {
                     this.config.fvia = { token: '' };
@@ -609,6 +634,16 @@ createApp({
                     if (maxLen < minLen) maxLen = minLen;
                     this.config.local_microsoft.suffix_len_min = minLen;
                     this.config.local_microsoft.suffix_len_max = maxLen;
+                }
+                if (this.config.hero_sms) {
+                    this.config.hero_sms.country = parseInt(this.config.hero_sms.country, 10);
+                    if (Number.isNaN(this.config.hero_sms.country)) this.config.hero_sms.country = 187;
+                    this.config.hero_sms.auto_pick_country = false;
+                }
+                if (this.config.smsbower) {
+                    this.config.smsbower.country = parseInt(this.config.smsbower.country, 10);
+                    if (Number.isNaN(this.config.smsbower.country)) this.config.smsbower.country = 187;
+                    this.config.smsbower.auto_pick_country = false;
                 }
                 this.config.warp_proxy_list = this.warpListStr.split('\n').map(s => s.trim()).filter(s => s);
                 if (!this.config.raw_proxy_pool || typeof this.config.raw_proxy_pool !== 'object' || Array.isArray(this.config.raw_proxy_pool)) {

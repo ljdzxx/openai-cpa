@@ -1,0 +1,36 @@
+# flyctl部署步骤
+
+# 假设 app 名是 crf-1：
+
+1.  fly apps create crf-1
+
+#  创建 volume(非必须)：
+
+2.  fly volumes create codex_register_data --region nrt --size 1 -a crf-1
+
+#  设置 secret，注意加 --stage：
+
+3.  fly secrets set APP_ACCESS_PASSWORD="你的登录密码" WEBUI_ACCESS_PASSWORD="你的登录密码" --stage -a crf-1
+
+#  然后部署(重新部署也是这个命令)：
+
+4.  fly deploy --ha=false -a crf-1
+
+
+
+# 运维命令
+
+#  查看状态：
+
+  fly status -a crf-1
+  fly logs -a crf-1
+
+
+# 列出 volume：
+
+  fly volumes list -a crf-1
+
+# 删除磁盘卷：找到要删除的 ID，然后删除：
+
+  fly volumes destroy <volume_id> -a crf-1
+

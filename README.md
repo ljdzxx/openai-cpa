@@ -5,7 +5,7 @@
 > ⚠️ **CRITICAL UPDATE (April 29, 2026) 20:29**
 > 
 > The official Telegram community has been fully migrated! The original group is no longer active.
-> 
+>
 > **ATTENTION:** The authentication system of Wenfxl Codex Manager is strictly bound to our official group. All users MUST **join the new group immediately**. Failure to do so will result in an HTTP 403 error and automatic service suspension during the next silent authorization check.
 > 
 > 👉 **[Click Here to Join the NEW Official Group](https://t.me/+srBiKuPvn4A3YmNl)**

@@ -5,7 +5,7 @@
 # https://github.com/s12ryt/mail-curl
 
 reg_mode: "protocol"
-# 可选值: "imap" / "freemail" / "cloudflare_temp_email" / "cloudmail" / "mail_curl" / "luckmail"
+# 可选值: "imap" / "freemail" / "cloudflare_temp_email" / "cloudmail" / "mail_curl" / "moemail" / "luckmail"
 email_api_mode: "cloudflare_temp_email"
 
 # [基础配置: cloudflare_temp_email / imap / cloudmail 共享]
@@ -87,6 +87,15 @@ mail_curl:
   #访问链接
   api_base: "https://your-domain.com"
   key: "" # 你的密钥
+
+# [模式 "moemail" 专属配置]
+moemail:
+  # MoeMail 站点根地址，结尾不要 /api，例如 https://your-moemail-domain.com
+  api_url: "https://your-moemail-domain.com"
+  # MoeMail 个人中心创建的 API Key，将通过 X-API-Key 请求头发送
+  api_key: ""
+  # 邮箱域名，例如 moemail.app；留空时自动读取 /api/config 返回的第一个 emailDomains
+  domain: ""
 
 # [DuckMail 鸭子邮箱配置]
 duckmail:
@@ -291,7 +300,7 @@ hero_sms:
   enabled: false
   api_key: 
   base_url: https://hero-sms.com/stubs/handler_api.php
-  country: 50
+  country: 187
   service: dr
   auto_pick_country: false
   verify_on_register: false
@@ -307,7 +316,7 @@ smsbower:
   enabled: false
   api_key:
   base_url: https://smsbower.page/stubs/handler_api.php
-  country: 0
+  country: 187
   service: dr
   auto_pick_country: false
   verify_on_register: false

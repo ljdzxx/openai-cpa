@@ -82,6 +82,10 @@ def _hero_sms_country_cooldown_sec() -> int: return 900
 
 def _hero_sms_price_cache_ttl_sec() -> int: return 90
 
+def _hero_sms_price_retry_count() -> int: return 6
+
+def _hero_sms_price_retry_delay_sec() -> float: return 10.0
+
 def _hero_sms_reuse_ttl_sec() -> int: return 1200
 
 def _hero_sms_reuse_max_uses() -> int:
@@ -842,6 +846,88 @@ def _is_hero_sms_no_numbers_issue(reason: str) -> bool:
         return False
     return "no_numbers" in low or "no numbers" in low or "no free phones" in low
 
+def _is_hero_sms_price_block_issue(reason: str) -> bool:
+    low = str(reason or "").strip().lower()
+    if not low:
+        return False
+    return "price_blocked" in low or "价格拦截" in low or "高于最高限价" in low
+
+def _hero_sms_find_country_price(
+        country_id: int,
+        rows: list[dict[str, Any]],
+) -> tuple[bool, float, int]:
+    cid = int(country_id)
+    for row in rows:
+        try:
+            row_country = int(row.get("country"))
+        except Exception:
+            continue
+        if row_country != cid:
+            continue
+        try:
+            cost = float(row.get("cost") or -1.0)
+        except Exception:
+            cost = -1.0
+        try:
+            count = int(row.get("count") or 0)
+        except Exception:
+            count = 0
+        return True, cost, count
+    return False, -1.0, 0
+
+def _hero_sms_wait_for_country_price_limit(
+        proxies: Any,
+        *,
+        service_code: str,
+        country_id: int,
+) -> tuple[bool, str]:
+    max_px = _hero_sms_order_max_price()
+    if max_px <= 0:
+        return True, ""
+
+    retry_count = max(1, int(_hero_sms_price_retry_count()))
+    retry_delay = max(0.0, float(_hero_sms_price_retry_delay_sec()))
+    last_reason = ""
+
+    for attempt in range(1, retry_count + 1):
+        _raise_if_stopped()
+        rows = _hero_sms_prices_by_service(
+            service_code,
+            proxies,
+            force_refresh=(attempt > 1),
+        )
+        found, actual_cost, count = _hero_sms_find_country_price(country_id, rows)
+
+        if found and count > 0 and actual_cost >= 0 and actual_cost <= max_px:
+            _info(
+                "HeroSMS 国家限价检查通过: "
+                f"country={country_id}, price=${actual_cost:.4f}, stock={count}, max=${max_px:.4f}"
+            )
+            return True, ""
+
+        if found:
+            if count <= 0:
+                last_reason = f"国家 {country_id} 当前无库存"
+            elif actual_cost < 0:
+                last_reason = f"国家 {country_id} 当前价格不可用"
+            else:
+                last_reason = f"国家 {country_id} 当前价格 ${actual_cost:.4f} 高于最高限价 ${max_px:.4f}"
+        else:
+            last_reason = f"国家 {country_id} 未返回当前服务库存/价格"
+
+        if attempt >= retry_count:
+            break
+
+        _warn(
+            "HeroSMS 国家限价检查未通过: "
+            f"{last_reason}，{int(retry_delay)}秒后重新拉取价格 "
+            f"({attempt}/{retry_count})"
+        )
+        if _sleep_interruptible(retry_delay):
+            raise UserStoppedError("stopped")
+
+    return False, f"PRICE_BLOCKED: {last_reason}，已重试 {retry_count} 次"
+
 def _hero_sms_get_number(
         proxies: Any,
         *,
@@ -865,6 +951,14 @@ def _hero_sms_get_number(
             return "", "", f"NO_BALANCE: 当前余额 ${balance_now:.2f} < 下限 ${min_balance:.2f}"
     elif balance_err:
         _warn(f"HeroSMS 余额查询失败: {balance_err}")
+
+    price_ok, price_err = _hero_sms_wait_for_country_price_limit(
+        proxies,
+        service_code=svc,
+        country_id=ctry,
+    )
+    if not price_ok:
+        return "", "", price_err
 
     params: Dict[str, Any] = {
         "service": svc,
@@ -1181,20 +1275,10 @@ def _try_verify_phone_via_hero_sms(
         service_code = _hero_sms_resolve_service_code(proxies)
         preferred_country_id = _hero_sms_resolve_country_id(proxies)
         _info(
-            "HeroSMS 国家策略: "
-            f"超时阈值：{_hero_sms_country_timeout_limit()}次, "
-            f"冷却：{_hero_sms_country_cooldown_sec()}s"
+            "HeroSMS 国家策略: 使用 Web 控制台设定的国家限定代码 "
+            f"{preferred_country_id}，取号前按最大取号单价做实时价格检查"
         )
-        country_id = _hero_sms_pick_country_id(
-            proxies,
-            service_code=service_code,
-            preferred_country=preferred_country_id,
-        )
-        excluded_country_ids: set[int] = set()
-        if country_id != preferred_country_id:
-            _warn(
-                f"HeroSMS 国家自动切换: {preferred_country_id} -> {country_id}"
-            )
+        country_id = preferred_country_id
         reuse_on = _hero_sms_reuse_enabled()
 
         if reuse_on:
@@ -1223,22 +1307,8 @@ def _try_verify_phone_via_hero_sms(
                     if switched:
                         _hero_sms_set_status(reuse_id, 8, proxies)
                         _hero_sms_reuse_clear()
-                        next_country = _hero_sms_pick_country_id(
-                            proxies,
-                            service_code=service_code,
-                            preferred_country=preferred_country_id,
-                        )
-                        if next_country != country_id:
-                            _warn(
-                                "当前国家接码超时达到阈值，自动切换国家: "
-                                f"{country_id} -> {next_country}"
-                            )
-                            country_id = next_country
-                        else:
-                            _hero_sms_reuse_touch(increase=True)
-                            _hero_sms_set_status(reuse_id, 3, proxies)
-                            _warn(f"复用手机号未收到短信，保留号码待下次继续: {last_reason}")
-                            return False, "接码超时，已保留复用号码"
+                        _warn(f"Web 控制台限定国家 {country_id} 接码超时达到阈值，本次不切换国家")
+                        return False, "接码超时"
                     else:
                         _hero_sms_reuse_touch(increase=True)
                         _hero_sms_set_status(reuse_id, 3, proxies)
@@ -1262,25 +1332,8 @@ def _try_verify_phone_via_hero_sms(
                     break
                 if _is_hero_sms_country_blocked_issue(get_err):
                     break
-                if (
-                        attempt < max_tries
-                        and _hero_sms_auto_pick_country()
-                        and _is_hero_sms_no_numbers_issue(get_err)
-                ):
-                    excluded_country_ids.add(int(country_id))
-                    next_country = _hero_sms_pick_country_id(
-                        proxies,
-                        service_code=service_code,
-                        preferred_country=preferred_country_id,
-                        exclude_country_ids=excluded_country_ids,
-                        force_refresh=True,
-                    )
-                    if next_country != country_id:
-                        _warn(f"当前国家无号，自动重选国家: {country_id} -> {next_country}")
-                        country_id = next_country
-                        if _sleep_interruptible(0.3):
-                            raise UserStoppedError("stopped")
-                        continue
+                if _is_hero_sms_price_block_issue(get_err):
+                    break
                 if _sleep_interruptible(1.2):
                     raise UserStoppedError("stopped")
                 continue
@@ -1310,18 +1363,8 @@ def _try_verify_phone_via_hero_sms(
                 if switched:
                     _hero_sms_set_status(activation_id, 8, proxies)
                     _hero_sms_reuse_clear()
-                    next_country = _hero_sms_pick_country_id(
-                        proxies,
-                        service_code=service_code,
-                        preferred_country=preferred_country_id,
-                    )
-                    if next_country != country_id:
-                        _warn(
-                            "当前国家接码超时达到阈值，自动切换国家: "
-                            f"{country_id} -> {next_country}"
-                        )
-                        country_id = next_country
-                        continue
+                    _warn(f"Web 控制台限定国家 {country_id} 接码超时达到阈值，本次不切换国家")
+                    return False, "接码超时"
                 _hero_sms_reuse_set(activation_id, phone_number, service_code, country_id)
                 _hero_sms_reuse_touch(increase=True)
                 _hero_sms_set_status(activation_id, 3, proxies)

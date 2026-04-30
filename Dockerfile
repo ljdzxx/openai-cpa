@@ -1,6 +1,8 @@
 FROM python:3.11-slim
 
 WORKDIR /app
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -12,9 +14,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 COPY . .
 
-RUN rm -rf utils/auth_core/*.py 2>/dev/null || true
+RUN mkdir -p /app/data && \
+    rm -f utils/auth_core.pyd utils/auth_core.cpython-311-darwin.so
 
 EXPOSE 8000
-ENV PYTHONUNBUFFERED=1
 
 CMD ["python", "wfxl_openai_regst.py"]

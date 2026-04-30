@@ -34,6 +34,28 @@ class LocalMicrosoftService:
         self.token_url = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
         self.graph_base_url = "https://graph.microsoft.com/v1.0/me"
 
+    def _request_with_retries(self, method: str, url: str, retries: int = 3, **kwargs):
+        retry_markers = (
+            "curl: (28)",
+            "curl: (35)",
+            "curl: (56)",
+            "Connection timed out",
+            "TLS connect error",
+            "timed out",
+        )
+        last_exc = None
+        for attempt in range(1, retries + 1):
+            try:
+                return getattr(cffi_requests, method.lower())(url, **kwargs)
+            except Exception as e:
+                last_exc = e
+                msg = str(e)
+                if attempt >= retries or not any(marker in msg for marker in retry_markers):
+                    raise
+                print(f"[{cfg.ts()}] [DEBUG-GRAPH] Microsoft 请求短暂失败，重试 {attempt}/{retries}: {e}", flush=True)
+                time.sleep(min(2 * attempt, 5))
+        raise last_exc
+
     def _resolve_suffix_mode(self) -> str:
         mode = str(getattr(cfg, "LOCAL_MS_SUFFIX_MODE", "fixed") or "fixed").strip().lower()
         if mode not in {"fixed", "range", "mystic"}:
@@ -192,7 +214,8 @@ class LocalMicrosoftService:
                 "refresh_token": refresh_token,
                 "scope": current_scope
             }
-            return cffi_requests.post(
+            return self._request_with_retries(
+                "post",
                 self.token_url,
                 data=payload,
                 proxies=self.proxies,
@@ -256,8 +279,15 @@ class LocalMicrosoftService:
                 "Authorization": f"Bearer {access_token}",
                 "Content-Type": "application/json"
             }
-            resp = cffi_requests.get(url, params=params, headers=headers, proxies=self.proxies, timeout=15,
-                                     impersonate="chrome110")
+            resp = self._request_with_retries(
+                "get",
+                url,
+                params=params,
+                headers=headers,
+                proxies=self.proxies,
+                timeout=15,
+                impersonate="chrome110"
+            )
             if resp.status_code == 200:
                 raw_msgs = resp.json().get("value", [])
                 for i, m in enumerate(raw_msgs):
@@ -291,8 +321,14 @@ class LocalMicrosoftService:
                 "refresh_token": refresh_token,
                 "scope": "https://outlook.office.com/IMAP.AccessAsUser.All offline_access"
             }
-            resp = cffi_requests.post(self.token_url, data=payload, proxies=self.proxies, timeout=15,
-                                      impersonate="chrome110")
+            resp = self._request_with_retries(
+                "post",
+                self.token_url,
+                data=payload,
+                proxies=self.proxies,
+                timeout=15,
+                impersonate="chrome110"
+            )
             data = resp.json()
             if resp.status_code != 200:
                 return all_msgs

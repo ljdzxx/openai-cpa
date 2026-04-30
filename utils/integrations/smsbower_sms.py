@@ -85,6 +85,10 @@ def _smsbower_country_cooldown_sec() -> int: return 900
 
 def _smsbower_price_cache_ttl_sec() -> int: return 90
 
+def _smsbower_price_retry_count() -> int: return 6
+
+def _smsbower_price_retry_delay_sec() -> float: return 10.0
+
 def _smsbower_reuse_ttl_sec() -> int: return 1200
 
 def _smsbower_reuse_max_uses() -> int:
@@ -408,6 +412,87 @@ def _smsbower_pick_country_id(proxies: Any, *, service_code: str, preferred_coun
     return int(scored[0][1])
 
 
+def _is_smsbower_price_block_issue(reason: str) -> bool:
+    low = str(reason or "").strip().lower()
+    if not low:
+        return False
+    return "price_blocked" in low or "价格拦截" in low or "高于最高限价" in low
+
+
+def _smsbower_find_country_price(country_id: int, rows: list[dict[str, Any]]) -> tuple[bool, float, int]:
+    cid = int(country_id)
+    for row in rows:
+        try:
+            row_country = int(row.get("country"))
+        except Exception:
+            continue
+        if row_country != cid:
+            continue
+        try:
+            cost = float(row.get("cost") or -1.0)
+        except Exception:
+            cost = -1.0
+        try:
+            count = int(row.get("count") or 0)
+        except Exception:
+            count = 0
+        return True, cost, count
+    return False, -1.0, 0
+
+
+def _smsbower_wait_for_country_price_limit(proxies: Any, *, service_code: str, country_id: int) -> tuple[bool, str]:
+    limit_max = _smsbower_order_max_price()
+    limit_min = _smsbower_order_min_price()
+    if limit_max <= 0 and limit_min <= 0:
+        return True, ""
+
+    retry_count = max(1, int(_smsbower_price_retry_count()))
+    retry_delay = max(0.0, float(_smsbower_price_retry_delay_sec()))
+    last_reason = ""
+
+    for attempt in range(1, retry_count + 1):
+        _raise_if_stopped()
+        rows = _smsbower_prices_by_service(service_code, proxies, force_refresh=(attempt > 1))
+        found, actual_cost, count = _smsbower_find_country_price(country_id, rows)
+
+        price_ok = found and count > 0 and actual_cost >= 0
+        if price_ok and limit_max > 0 and actual_cost > limit_max:
+            price_ok = False
+            last_reason = f"国家 {country_id} 当前价格 {actual_cost:.4f}$ 高于最高限价 {limit_max:.4f}$"
+        if price_ok and limit_min > 0 and actual_cost < limit_min:
+            price_ok = False
+            last_reason = f"国家 {country_id} 当前价格 {actual_cost:.4f}$ 低于最低限价 {limit_min:.4f}$"
+        if price_ok:
+            _info(
+                "SmsBower 国家限价检查通过: "
+                f"country={country_id}, price={actual_cost:.4f}$, stock={count}"
+            )
+            return True, ""
+
+        if not last_reason:
+            if found:
+                if count <= 0:
+                    last_reason = f"国家 {country_id} 当前无库存"
+                elif actual_cost < 0:
+                    last_reason = f"国家 {country_id} 当前价格不可用"
+            else:
+                last_reason = f"国家 {country_id} 未返回当前服务库存/价格"
+
+        if attempt >= retry_count:
+            break
+
+        _warn(
+            "SmsBower 国家限价检查未通过: "
+            f"{last_reason}，{int(retry_delay)}秒后重新拉取价格 "
+            f"({attempt}/{retry_count})"
+        )
+        if _sleep_interruptible(retry_delay):
+            raise UserStoppedError("stopped")
+        last_reason = ""
+
+    return False, f"PRICE_BLOCKED: {last_reason}，已重试 {retry_count} 次"
+
+
 def _smsbower_set_status(activation_id: str, status: int, proxies: Any) -> str:
     if not activation_id: return ""
     _, text, _ = _smsbower_request("setStatus", proxies=proxies, params={"id": activation_id, "status": int(status)},
@@ -419,21 +504,13 @@ def _smsbower_get_number(proxies: Any, *, service_code: str, country_id: int) ->
     if country_id in _OPENAI_SMS_BLOCKED_COUNTRY_IDS:
         return "", "", f"COUNTRY_BLOCKED: 国家ID {country_id} 被拉黑", ""
 
-    limit_max = _smsbower_order_max_price()
-    limit_min = _smsbower_order_min_price()
-    if limit_max > 0 or limit_min > 0:
-        rows = _smsbower_prices_by_service(service_code, proxies)
-        actual_cost = -1.0
-        for r in rows:
-            if r.get("country") == country_id:
-                actual_cost = float(r.get("cost", -1.0))
-                break
-
-        if actual_cost > 0:
-            if limit_max > 0 and actual_cost > limit_max:
-                return "", "", f"价格拦截: 该国当前价格 ({actual_cost}$) 高于您的最高限价 ({limit_max}$)", ""
-            if limit_min > 0 and actual_cost < limit_min:
-                return "", "", f"价格拦截: 该国当前价格 ({actual_cost}$) 低于您的最低限价 ({limit_min}$)", ""
+    price_ok, price_err = _smsbower_wait_for_country_price_limit(
+        proxies,
+        service_code=service_code,
+        country_id=country_id,
+    )
+    if not price_ok:
+        return "", "", price_err, ""
 
     params = {"service": service_code, "country": country_id}
     if _smsbower_order_max_price() > 0: params["maxPrice"] = _smsbower_order_max_price()
@@ -577,11 +654,10 @@ def try_verify_phone_via_smsbower(session: requests.Session, *, proxies: Any, hi
         verify_balance_start, _ = smsbower_get_balance(proxies)
         service_code = _smsbower_resolve_service_code(proxies)
         pref_country = _smsbower_resolve_country_id(proxies)
-        country_id = _smsbower_pick_country_id(proxies, service_code=service_code, preferred_country=pref_country)
-        excluded_countries = set()
+        country_id = pref_country
         reuse_on = _smsbower_reuse_enabled()
 
-        _info(f"SmsBower 国家分配: 目标国家ID为 {country_id} (服务代码: {service_code})")
+        _info(f"SmsBower 国家策略: 使用 Web 控制台设定的国家限定代码 {country_id} (服务代码: {service_code})")
 
         if reuse_on:
             rid, rphone, rused = _smsbower_reuse_get(service_code, country_id)
@@ -597,8 +673,8 @@ def try_verify_phone_via_smsbower(session: requests.Session, *, proxies: Any, hi
                 _smsbower_country_record_result(country_id, False, reason_r)
                 if "超时" in str(reason_r):
                     if _smsbower_country_mark_timeout(country_id):
-                        country_id = _smsbower_pick_country_id(proxies, service_code=service_code,
-                                                               preferred_country=pref_country)
+                        _warn(f"Web 控制台限定国家 {country_id} 接码超时达到阈值，本次不切换国家")
+                        return False, "接码超时"
                 # _smsbower_set_status(rid, 8, proxies)
                 _smsbower_reuse_clear()
 
@@ -609,12 +685,8 @@ def try_verify_phone_via_smsbower(session: requests.Session, *, proxies: Any, hi
             if not aid:
                 last_reason = f"取号失败 {gerr}"
                 _warn(f"⚠️ 第 {attempt}/{max_tries} 次取号失败: {gerr}")
-                if attempt < max_tries and _smsbower_auto_pick_country() and "NO_NUMBERS" in str(gerr).upper():
-                    excluded_countries.add(country_id)
-                    country_id = _smsbower_pick_country_id(proxies, service_code=service_code,
-                                                           preferred_country=pref_country,
-                                                           exclude_country_ids=excluded_countries, force_refresh=True)
-                    _info(f"🔄 自动切换至备选国家 ID: {country_id}")
+                if _is_smsbower_price_block_issue(gerr) or "COUNTRY_BLOCKED" in str(gerr).upper():
+                    break
 
                 _sleep_interruptible(2.0)
                 continue
@@ -636,8 +708,8 @@ def try_verify_phone_via_smsbower(session: requests.Session, *, proxies: Any, hi
             if reuse_on and "超时" in str(last_reason):
                 if _smsbower_country_mark_timeout(country_id):
                     _smsbower_set_status(aid, 8, proxies)
-                    country_id = _smsbower_pick_country_id(proxies, service_code=service_code,
-                                                           preferred_country=pref_country)
+                    _warn(f"Web 控制台限定国家 {country_id} 接码超时达到阈值，本次不切换国家")
+                    return False, "接码超时"
                 # else:
                 #     _smsbower_reuse_set(aid, phone, service_code, country_id)
                 #     _smsbower_set_status(aid, 3, proxies)

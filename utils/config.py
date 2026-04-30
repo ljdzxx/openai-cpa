@@ -178,7 +178,7 @@ def init_config():
                 print(f"[{ts()}] [WARNING] 自动补全配置文件写入失败: {e}")
 
     return user_config
-APP_VERSION = "v14.1.0"
+APP_VERSION = "v14.0.6"
 _c: dict = {}
 WEB_PASSWORD: str = "admin"
 RETAIN_REG_ONLY: bool = False
@@ -280,10 +280,13 @@ DUCK_OFFICIAL_API_BASE: str = "https://quack.duckduckgo.com"
 DUCKMAIL_FORWARD_MODE: str = "Gmail_OAuth"
 DUCKMAIL_FORWARD_EMAIL: str = ""
 DUCK_USE_PROXY: bool = True
+MOEMAIL_API_URL: str = ""
+MOEMAIL_API_KEY: str = ""
+MOEMAIL_DOMAIN: str = ""
 HERO_SMS_ENABLED: bool = False
 HERO_SMS_API_KEY: str = ""
 HERO_SMS_BASE_URL: str = "https://hero-sms.com/stubs/handler_api.php"
-HERO_SMS_COUNTRY: str = "US"
+HERO_SMS_COUNTRY: int = 187
 HERO_SMS_SERVICE: str = "openai"
 HERO_SMS_AUTO_PICK_COUNTRY: bool = False
 HERO_SMS_REUSE_PHONE: bool = True
@@ -297,7 +300,7 @@ HERO_SMS_POLL_TIMEOUT_SEC: int = 120
 SMSBOWER_ENABLED = False
 SMSBOWER_API_KEY = ""
 SMSBOWER_BASE_URL = "https://smsbower.page/stubs/handler_api.php"
-SMSBOWER_COUNTRY = 0
+SMSBOWER_COUNTRY = 187
 SMSBOWER_SERVICE = "dr"
 SMSBOWER_AUTO_PICK_COUNTRY = False
 SMSBOWER_VERIFY_ON_REGISTER = False
@@ -434,6 +437,7 @@ def reload_all_configs(new_config_dict=None):
     global DUCKMAIL_API_URL, DUCKMAIL_DOMAIN, DUCKMAIL_MODE, DUCK_API_TOKEN, DUCK_COOKIE, DUCK_OFFICIAL_API_BASE
     global DUCKMAIL_FORWARD_MODE, DUCKMAIL_FORWARD_EMAIL
     global DUCK_USE_PROXY
+    global MOEMAIL_API_URL, MOEMAIL_API_KEY, MOEMAIL_DOMAIN
     global CLUSTER_NODE_NAME, CLUSTER_MASTER_URL, CLUSTER_SECRET
     global REG_MODE
     global LOCAL_MS_ENABLE_FISSION, LOCAL_MS_MASTER_EMAIL, LOCAL_MS_PASSWORD, LOCAL_MS_CLIENT_ID, LOCAL_MS_REFRESH_TOKEN, LOCAL_MS_POOL_FISSION
@@ -603,6 +607,10 @@ def reload_all_configs(new_config_dict=None):
     MC_API_BASE = str(_mc.get("api_base", "")).strip().rstrip("/")
     MC_KEY = _mc.get("key", "")
 
+    _moemail = _c.get("moemail", {})
+    MOEMAIL_API_URL = format_docker_url(str(_moemail.get("api_url", "")).strip()).rstrip("/")
+    MOEMAIL_API_KEY = str(_moemail.get("api_key", "")).strip()
+    MOEMAIL_DOMAIN = str(_moemail.get("domain", "")).strip()
 
     _ocpa = _c.get("openai_cpa", {})
     OPENAI_CPA_WEBHOOK_SECRET = str(_ocpa.get("webhook_secret", "")).strip()
@@ -679,7 +687,7 @@ def reload_all_configs(new_config_dict=None):
     NORMAL_SLEEP_MAX = _normal.get("sleep_max", 30)
     NORMAL_TARGET_COUNT = _normal.get("target_count", 0)
     NORMAL_SAVE_IMG_TO_LOCAL = safe_bool(_normal.get("save_img_to_local", False))
-    
+
     _clash_conf = _c.get("clash_proxy_pool", {})
     _clash_enable = _clash_conf.get("enable", False)
     _clash_pool_mode = _clash_conf.get("pool_mode", False)
@@ -729,9 +737,9 @@ def reload_all_configs(new_config_dict=None):
     HERO_SMS_API_KEY = _hero_sms_conf.get("api_key", "")
     HERO_SMS_BASE_URL = str(
         _hero_sms_conf.get("base_url", "https://hero-sms.com/stubs/handler_api.php")).strip().rstrip("/")
-    HERO_SMS_COUNTRY = _hero_sms_conf.get("country", "US")
+    HERO_SMS_COUNTRY = safe_int(_hero_sms_conf.get("country", 187), default=187)
     HERO_SMS_SERVICE = _hero_sms_conf.get("service", "dr")
-    HERO_SMS_AUTO_PICK_COUNTRY = _hero_sms_conf.get("auto_pick_country", False)
+    HERO_SMS_AUTO_PICK_COUNTRY = False
     HERO_SMS_REUSE_PHONE = _hero_sms_conf.get("reuse_phone", True)
     HERO_SMS_VERIFY_ON_REGISTER = _hero_sms_conf.get("verify_on_register", False)
     HERO_SMS_REUSE_MAX = safe_int(_hero_sms_conf.get("reuse_max", 2), default=2)
@@ -760,9 +768,9 @@ def reload_all_configs(new_config_dict=None):
     SMSBOWER_ENABLED = safe_bool(_smsbower.get("enabled", False), default=False)
     SMSBOWER_API_KEY = str(_smsbower.get("api_key") or "").strip()
     SMSBOWER_BASE_URL = str(_smsbower.get("base_url") or "https://smsbower.page/stubs/handler_api.php").strip()
-    SMSBOWER_COUNTRY = safe_int(_smsbower.get("country", 0), default=0)
+    SMSBOWER_COUNTRY = safe_int(_smsbower.get("country", 187), default=187)
     SMSBOWER_SERVICE = str(_smsbower.get("service") or "dr").strip()
-    SMSBOWER_AUTO_PICK_COUNTRY = safe_bool(_smsbower.get("auto_pick_country", True), default=True)
+    SMSBOWER_AUTO_PICK_COUNTRY = False
     SMSBOWER_VERIFY_ON_REGISTER = safe_bool(_smsbower.get("verify_on_register", False), default=False)
     SMSBOWER_REUSE_PHONE = safe_bool(_smsbower.get("reuse_phone", True), default=True)
     SMSBOWER_MAX_PRICE = safe_float(_smsbower.get("max_price", 0.0), default=0.0)

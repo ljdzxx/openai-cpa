@@ -229,6 +229,26 @@ def get_email_and_token(proxies: Any = None) -> tuple:
             print(f"[{cfg.ts()}] [ERROR] mail-curl 获取邮箱异常: {e}")
         return None, None
 
+    if mode == "moemail":
+        try:
+            from utils.email_providers.moemail_service import MoemailService
+
+            ms = MoemailService(
+                api_url=getattr(cfg, "MOEMAIL_API_URL", ""),
+                api_key=getattr(cfg, "MOEMAIL_API_KEY", ""),
+                domain=getattr(cfg, "MOEMAIL_DOMAIN", ""),
+                proxies=mail_proxies,
+            )
+            email, email_id = ms.create_email()
+            if email and email_id:
+                set_last_email(email)
+                print(f"[{cfg.ts()}] [INFO] Moemail 成功创建邮箱: {mask_email(email)} (ID: {email_id})")
+                return email, email_id
+            print(f"[{cfg.ts()}] [ERROR] Moemail 获取邮箱失败，请检查 API 地址、API 密钥和邮箱域名")
+        except Exception as e:
+            print(f"[{cfg.ts()}] [ERROR] Moemail 流程异常: {e}")
+        return None, None
+
     if mode == "fvia":
         try:
             from utils.email_providers.fvia_service import FviaMailService
@@ -809,6 +829,40 @@ def get_oai_code(
                                     processed_mail_ids.add(m_id)
                                     print(f"\n[{cfg.ts()}] [SUCCESS] mail_curl ({mask_email(email)})邮箱提取成功: {code}")
                                     return code
+            elif mode == "moemail":
+                if not jwt:
+                    print(f"\n[{cfg.ts()}] [ERROR] Moemail 缺少邮箱 ID，无法提取验证码")
+                    return ""
+                from utils.email_providers.moemail_service import MoemailService
+
+                ms = MoemailService(
+                    api_url=getattr(cfg, "MOEMAIL_API_URL", ""),
+                    api_key=getattr(cfg, "MOEMAIL_API_KEY", ""),
+                    domain=getattr(cfg, "MOEMAIL_DOMAIN", ""),
+                    proxies=mail_proxies,
+                )
+                msgs = ms.get_messages(jwt)
+                for m in msgs:
+                    m_id = str(m.get("id") or "")
+                    if not m_id or m_id in processed_mail_ids:
+                        continue
+
+                    detail = ms.get_message_detail(jwt, m_id)
+                    merged = dict(m)
+                    merged.update(detail)
+                    sender = str(merged.get("from_address") or merged.get("from") or "").lower()
+                    content = ms.message_text(merged)
+
+                    if "openai" not in sender and "openai" not in content.lower() and "chatgpt" not in content.lower():
+                        processed_mail_ids.add(m_id)
+                        continue
+
+                    code = _extract_otp_code(content)
+                    if code:
+                        processed_mail_ids.add(m_id)
+                        print(f"\n[{cfg.ts()}] [SUCCESS] Moemail ({mask_email(email)}) 邮箱提取成功: {code}")
+                        return code
+
             elif mode == "fvia":
                 from utils.email_providers.fvia_service import FviaMailService
                 fs = FviaMailService(token=jwt, proxies=mail_proxies)
