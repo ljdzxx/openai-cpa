@@ -76,6 +76,9 @@ def _hero_sms_poll_timeout_sec() -> int:
 def _hero_sms_max_tries() -> int:
     return int(cfg.HERO_SMS_MAX_TRIES)
 
+def _hero_sms_number_retry_delay_sec() -> float:
+    return float(getattr(cfg, 'HERO_SMS_NUMBER_RETRY_DELAY_SEC', 1.2))
+
 def _hero_sms_country_timeout_limit() -> int: return 2
 
 def _hero_sms_country_cooldown_sec() -> int: return 900
@@ -1110,7 +1113,7 @@ def _try_verify_phone_via_hero_sms(
     if not _hero_sms_enabled():
         return False, "HeroSMS 未配置 API Key 或HeroSMS主开关未开启，如果不想花钱接码请忽略该条提示"
 
-    max_tries = _hero_sms_max_tries()
+    max_tries = max(1, int(_hero_sms_max_tries()))
     last_reason = "HeroSMS 手机验证失败"
     lock_acquired = False
 
@@ -1317,6 +1320,7 @@ def _try_verify_phone_via_hero_sms(
                     _hero_sms_set_status(reuse_id, 8, proxies)
                     _hero_sms_reuse_clear()
 
+        retry_delay_sec = max(0.0, float(_hero_sms_number_retry_delay_sec()))
         for attempt in range(1, max_tries + 1):
             _raise_if_stopped()
             activation_id, phone_number, get_err = _hero_sms_get_number(
@@ -1333,7 +1337,7 @@ def _try_verify_phone_via_hero_sms(
                     break
                 if _is_hero_sms_price_block_issue(get_err):
                     break
-                if _sleep_interruptible(1.2):
+                if _sleep_interruptible(retry_delay_sec):
                     raise UserStoppedError("stopped")
                 continue
 
@@ -1365,7 +1369,7 @@ def _try_verify_phone_via_hero_sms(
                     _warn(f"Web 控制台限定国家 {country_id} 接码超时达到阈值，本次不切换国家")
                     return False, "接码超时"
                 _warn("新购号码接码超时，已立即释放号码，继续尝试新号码")
-                if _sleep_interruptible(1.2):
+                if _sleep_interruptible(retry_delay_sec):
                     raise UserStoppedError("stopped")
                 continue
             if reuse_on:

@@ -297,6 +297,7 @@ HERO_SMS_MAX_TRIES: int = 3
 HERO_SMS_POLL_TIMEOUT_SEC: int = 120
 HERO_SMS_PRICE_RETRY_COUNT: int = 6
 HERO_SMS_PRICE_RETRY_DELAY_SEC: float = 10.0
+HERO_SMS_NUMBER_RETRY_DELAY_SEC: float = 1.2
 
 # SmsBower
 SMSBOWER_ENABLED = False
@@ -432,7 +433,7 @@ def reload_all_configs(new_config_dict=None):
     global HERO_SMS_ENABLED, HERO_SMS_API_KEY, HERO_SMS_BASE_URL, HERO_SMS_COUNTRY, HERO_SMS_SERVICE
     global HERO_SMS_AUTO_PICK_COUNTRY, HERO_SMS_REUSE_PHONE, HERO_SMS_MAX_PRICE, HERO_SMS_VERIFY_ON_REGISTER
     global HERO_SMS_MIN_BALANCE, HERO_SMS_MAX_TRIES, HERO_SMS_POLL_TIMEOUT_SEC
-    global HERO_SMS_PRICE_RETRY_COUNT, HERO_SMS_PRICE_RETRY_DELAY_SEC
+    global HERO_SMS_PRICE_RETRY_COUNT, HERO_SMS_PRICE_RETRY_DELAY_SEC, HERO_SMS_NUMBER_RETRY_DELAY_SEC
     global AI_API_BASE, AI_API_KEY, AI_MODEL, AI_ENABLE_PROFILE
     global CPA_AUTO_CHECK, SUB2API_AUTO_CHECK
     global TG_BOT
@@ -779,6 +780,11 @@ def reload_all_configs(new_config_dict=None):
         HERO_SMS_PRICE_RETRY_DELAY_SEC = float(_hero_sms_conf.get("price_retry_delay_sec", 10.0))
     except:
         HERO_SMS_PRICE_RETRY_DELAY_SEC = 10.0
+
+    try:
+        HERO_SMS_NUMBER_RETRY_DELAY_SEC = float(_hero_sms_conf.get("number_retry_delay_sec", 1.2))
+    except:
+        HERO_SMS_NUMBER_RETRY_DELAY_SEC = 1.2
 
     _smsbower = _c.get("smsbower", {})
     SMSBOWER_ENABLED = safe_bool(_smsbower.get("enabled", False), default=False)

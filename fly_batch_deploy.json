@@ -1,0 +1,4 @@
+[{"cmd":"fly-ljdzxx","app":"xl-reg-syd","region":"syd"},{"cmd":"fly-ljdzxx","app":"xl-reg-gru","region":"gru"},{"cmd":"fly-ljdzxx","app":"xl-reg-bom","region":"bom"},
+{"cmd":"fly-ljdzxx","app":"lj-reg-nrt","region":"nrt"},{"cmd":"fly-ljdzxx","app":"lj-reg-sin","region":"sin"},{"cmd":"fly-ljdzxx","app":"lj-reg-ams","region":"ams"},
+{"cmd":"fly-ray","app":"xl-reg-nrt","region":"nrt"},{"cmd":"fly-ray","app":"xl-reg-sin","region":"sin"},{"cmd":"fly-ray","app":"xl-reg-ams","region":"ams"},
+{"cmd":"fly-ray","app":"ray-reg-syd","region":"syd"},{"cmd":"fly-ray","app":"ray-reg-gru","region":"gru"},{"cmd":"fly-ray","app":"ray-reg-bom","region":"bom"}]

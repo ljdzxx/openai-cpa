@@ -487,7 +487,7 @@ createApp({
                             enabled: false, api_key: '', country: 187, service: 'dr',
                             auto_pick_country: false, verify_on_register: false, reuse_phone: true, reuse_max: 2,
                             max_price: 0.08, min_price: 0.05, min_balance: 1, max_tries: 3, poll_timeout_sec: 120,
-                            price_retry_count: 6, price_retry_delay_sec: 10
+                            price_retry_count: 6, price_retry_delay_sec: 10, number_retry_delay_sec: 1.2
                         };
                     } else {
                         this.config.hero_sms.enabled = normalizeBooleanLike(this.config.hero_sms.enabled, false);
@@ -499,6 +499,7 @@ createApp({
                         if(this.config.hero_sms.reuse_max === undefined) this.config.hero_sms.reuse_max = 2;
                         if(this.config.hero_sms.price_retry_count === undefined) this.config.hero_sms.price_retry_count = 6;
                         if(this.config.hero_sms.price_retry_delay_sec === undefined) this.config.hero_sms.price_retry_delay_sec = 10;
+                        if(this.config.hero_sms.number_retry_delay_sec === undefined) this.config.hero_sms.number_retry_delay_sec = 1.2;
                     }
                 }
 

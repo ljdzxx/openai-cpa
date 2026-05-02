@@ -312,6 +312,7 @@ hero_sms:
   poll_timeout_sec: 120
   price_retry_count: 6
   price_retry_delay_sec: 10
+  number_retry_delay_sec: 1.2
   reuse_max: 2
 
 smsbower:
