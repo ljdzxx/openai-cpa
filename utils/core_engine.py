@@ -192,6 +192,15 @@ def upload_to_cpa_integrated(
             if fb.status_code in (200, 201):
                 return True, "上传成功"
             resp = fb
+        response_body = ""
+        try:
+            response_body = str(resp.text or "").strip()
+        except Exception:
+            response_body = ""
+        if response_body:
+            if len(response_body) > 1000:
+                response_body = response_body[:1000] + "...(truncated)"
+            return False, f"HTTP {resp.status_code} | response body: {response_body}"
         return False, f"HTTP {resp.status_code}"
     except Exception as e:
         return False, str(e)
@@ -651,6 +660,7 @@ def handle_registration_result(result: Any, cpa_upload: bool = False, run_ctx: d
         if cpa_upload:
             success, up_msg = upload_to_cpa_integrated(token_data, cfg.CPA_API_URL, cfg.CPA_API_TOKEN)
             if success:
+                db_manager.update_account_push_info([account_email], "CPA", mode="sync")
                 print(f"[{ts()}] [SUCCESS] 补货凭证 {mask_email(account_email)} 云端上传成功！")
             else:
                 print(f"[{ts()}] [ERROR] 云端上传失败: {up_msg}")

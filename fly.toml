@@ -1,5 +1,5 @@
-app = "xl-reg-syd"
-primary_region = "syd"
+app = "ray-reg-bom"
+primary_region = "bom"
 
 [build]
   dockerfile = "Dockerfile"
@@ -25,4 +25,4 @@ primary_region = "syd"
 [[vm]]
   cpu_kind = "shared"
   cpus = 1
-  memory = "1gb"
+  memory_mb = 512

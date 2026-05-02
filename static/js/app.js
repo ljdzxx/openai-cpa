@@ -452,7 +452,8 @@ createApp({
                         this.config.smsbower = {
                             enabled: false, api_key: '', country: 187, service: 'dr',
                             auto_pick_country: false, verify_on_register: false, reuse_phone: true, reuse_max: 2,
-                            max_price: 0.08, min_price: 0.05, min_balance: 10.0, max_tries: 3, poll_timeout_sec: 180
+                            max_price: 0.08, min_price: 0.05, min_balance: 10.0, max_tries: 3, poll_timeout_sec: 180,
+                            price_retry_count: 6, price_retry_delay_sec: 10
                         };
                     } else {
                         this.config.smsbower.min_price = parseFloat(this.config.smsbower.min_price) || 0.05;
@@ -463,6 +464,8 @@ createApp({
                         this.config.smsbower.reuse_phone = normalizeBooleanLike(this.config.smsbower.reuse_phone, true);
                         this.config.smsbower.verify_on_register = normalizeBooleanLike(this.config.smsbower.verify_on_register, false);
                         if(this.config.smsbower.reuse_max === undefined) this.config.smsbower.reuse_max = 2;
+                        if(this.config.smsbower.price_retry_count === undefined) this.config.smsbower.price_retry_count = 6;
+                        if(this.config.smsbower.price_retry_delay_sec === undefined) this.config.smsbower.price_retry_delay_sec = 10;
                     }
 
                     if (!this.config.fivesim) {
@@ -472,15 +475,30 @@ createApp({
                             max_price: 50.0, min_price: 0.0, min_balance: 10.0, max_tries: 3, poll_timeout_sec: 180
                         };
                     } else {
+                        this.config.fivesim.enabled = normalizeBooleanLike(this.config.fivesim.enabled, false);
+                        this.config.fivesim.auto_pick_country = normalizeBooleanLike(this.config.fivesim.auto_pick_country, true);
+                        this.config.fivesim.reuse_phone = normalizeBooleanLike(this.config.fivesim.reuse_phone, true);
+                        this.config.fivesim.verify_on_register = normalizeBooleanLike(this.config.fivesim.verify_on_register, false);
                         if(this.config.fivesim.reuse_max === undefined) this.config.fivesim.reuse_max = 2;
                     }
 
-                    if (this.config.hero_sms) {
+                    if (!this.config.hero_sms) {
+                        this.config.hero_sms = {
+                            enabled: false, api_key: '', country: 187, service: 'dr',
+                            auto_pick_country: false, verify_on_register: false, reuse_phone: true, reuse_max: 2,
+                            max_price: 0.08, min_price: 0.05, min_balance: 1, max_tries: 3, poll_timeout_sec: 120,
+                            price_retry_count: 6, price_retry_delay_sec: 10
+                        };
+                    } else {
                         this.config.hero_sms.enabled = normalizeBooleanLike(this.config.hero_sms.enabled, false);
                         this.config.hero_sms.country = parseInt(this.config.hero_sms.country, 10);
                         if (Number.isNaN(this.config.hero_sms.country)) this.config.hero_sms.country = 187;
                         this.config.hero_sms.auto_pick_country = false;
+                        this.config.hero_sms.reuse_phone = normalizeBooleanLike(this.config.hero_sms.reuse_phone, true);
+                        this.config.hero_sms.verify_on_register = normalizeBooleanLike(this.config.hero_sms.verify_on_register, false);
                         if(this.config.hero_sms.reuse_max === undefined) this.config.hero_sms.reuse_max = 2;
+                        if(this.config.hero_sms.price_retry_count === undefined) this.config.hero_sms.price_retry_count = 6;
+                        if(this.config.hero_sms.price_retry_delay_sec === undefined) this.config.hero_sms.price_retry_delay_sec = 10;
                     }
                 }
 

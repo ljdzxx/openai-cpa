@@ -85,9 +85,11 @@ def _smsbower_country_cooldown_sec() -> int: return 900
 
 def _smsbower_price_cache_ttl_sec() -> int: return 90
 
-def _smsbower_price_retry_count() -> int: return 6
+def _smsbower_price_retry_count() -> int:
+    return int(getattr(cfg, 'SMSBOWER_PRICE_RETRY_COUNT', 6))
 
-def _smsbower_price_retry_delay_sec() -> float: return 10.0
+def _smsbower_price_retry_delay_sec() -> float:
+    return float(getattr(cfg, 'SMSBOWER_PRICE_RETRY_DELAY_SEC', 10.0))
 
 def _smsbower_reuse_ttl_sec() -> int: return 1200
 

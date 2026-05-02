@@ -82,9 +82,11 @@ def _hero_sms_country_cooldown_sec() -> int: return 900
 
 def _hero_sms_price_cache_ttl_sec() -> int: return 90
 
-def _hero_sms_price_retry_count() -> int: return 6
+def _hero_sms_price_retry_count() -> int:
+    return int(getattr(cfg, 'HERO_SMS_PRICE_RETRY_COUNT', 6))
 
-def _hero_sms_price_retry_delay_sec() -> float: return 10.0
+def _hero_sms_price_retry_delay_sec() -> float:
+    return float(getattr(cfg, 'HERO_SMS_PRICE_RETRY_DELAY_SEC', 10.0))
 
 def _hero_sms_reuse_ttl_sec() -> int: return 1200
 
@@ -1304,19 +1306,16 @@ def _try_verify_phone_via_hero_sms(
                 _hero_sms_country_record_result(country_id, False, last_reason)
                 if _is_hero_sms_timeout_issue(last_reason):
                     switched = _hero_sms_country_mark_timeout(country_id)
+                    _hero_sms_set_status(reuse_id, 8, proxies)
+                    _hero_sms_reuse_clear()
                     if switched:
-                        _hero_sms_set_status(reuse_id, 8, proxies)
-                        _hero_sms_reuse_clear()
                         _warn(f"Web 控制台限定国家 {country_id} 接码超时达到阈值，本次不切换国家")
                         return False, "接码超时"
-                    else:
-                        _hero_sms_reuse_touch(increase=True)
-                        _hero_sms_set_status(reuse_id, 3, proxies)
-                        _warn(f"复用手机号未收到短信，保留号码待下次继续: {last_reason}")
-                        return False, "接码超时，已保留复用号码"
-                _warn(f"复用手机号失败，改为新购号码: {last_reason}")
-                _hero_sms_set_status(reuse_id, 8, proxies)
-                _hero_sms_reuse_clear()
+                    _warn(f"复用手机号接码超时，已立即释放号码，改为新购号码: {last_reason}")
+                else:
+                    _warn(f"复用手机号失败，改为新购号码: {last_reason}")
+                    _hero_sms_set_status(reuse_id, 8, proxies)
+                    _hero_sms_reuse_clear()
 
         for attempt in range(1, max_tries + 1):
             _raise_if_stopped()
@@ -1360,16 +1359,15 @@ def _try_verify_phone_via_hero_sms(
             _hero_sms_country_record_result(country_id, False, last_reason)
             if reuse_on and _is_hero_sms_timeout_issue(last_reason):
                 switched = _hero_sms_country_mark_timeout(country_id)
+                _hero_sms_set_status(activation_id, 8, proxies)
+                _hero_sms_reuse_clear()
                 if switched:
-                    _hero_sms_set_status(activation_id, 8, proxies)
-                    _hero_sms_reuse_clear()
                     _warn(f"Web 控制台限定国家 {country_id} 接码超时达到阈值，本次不切换国家")
                     return False, "接码超时"
-                _hero_sms_reuse_set(activation_id, phone_number, service_code, country_id)
-                _hero_sms_reuse_touch(increase=True)
-                _hero_sms_set_status(activation_id, 3, proxies)
-                _warn("新购号码接码超时，已保留号码供后续复用，停止继续购号")
-                return False, "接码超时，已保留复用号码"
+                _warn("新购号码接码超时，已立即释放号码，继续尝试新号码")
+                if _sleep_interruptible(1.2):
+                    raise UserStoppedError("stopped")
+                continue
             if reuse_on:
                 _hero_sms_set_status(activation_id, 8, proxies)
 

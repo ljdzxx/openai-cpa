@@ -947,8 +947,18 @@ def run(proxy: Optional[str], run_ctx: dict = None) -> tuple:
                     url_code = url_code.get("error", {}).get("code")
                 except Exception as e:
                     pass
+                raw_url_code = str(url_code or "").strip()
+                if raw_url_code and raw_url_code not in {"identity_provider_mismatch"}:
+                    print(
+                        f"[{cfg.ts()}] [CRITICAL] OAuth non-standard response detected; "
+                        f"aborting task. email={mask_email(email)} raw_url_code={raw_url_code!r} current_url={current_url!r}"
+                    )
+                    cfg.GLOBAL_STOP = True
+                    cfg.POOL_EXHAUSTED = True
                 if "identity_provider_mismatch" in url_code:
                     url_code = "当前账号被阻断"
+                elif url_code:
+                    url_code = str(url_code)
                 else:
                     url_code = "未开启接码开关，不接码可忽略该条提示"
                 if not error_reason:

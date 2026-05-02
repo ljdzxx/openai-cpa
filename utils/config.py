@@ -178,7 +178,7 @@ def init_config():
                 print(f"[{ts()}] [WARNING] 自动补全配置文件写入失败: {e}")
 
     return user_config
-APP_VERSION = "v14.1.2"
+APP_VERSION = "v14.1.3"
 _c: dict = {}
 WEB_PASSWORD: str = "admin"
 RETAIN_REG_ONLY: bool = False
@@ -295,6 +295,8 @@ HERO_SMS_MAX_PRICE: float = 2.0
 HERO_SMS_MIN_BALANCE: float = 2.0
 HERO_SMS_MAX_TRIES: int = 3
 HERO_SMS_POLL_TIMEOUT_SEC: int = 120
+HERO_SMS_PRICE_RETRY_COUNT: int = 6
+HERO_SMS_PRICE_RETRY_DELAY_SEC: float = 10.0
 
 # SmsBower
 SMSBOWER_ENABLED = False
@@ -310,6 +312,8 @@ SMSBOWER_MIN_BALANCE = 0.0
 SMSBOWER_MAX_TRIES = 3
 SMSBOWER_POLL_TIMEOUT_SEC = 180
 SMSBOWER_MIN_PRICE = 0.05
+SMSBOWER_PRICE_RETRY_COUNT = 6
+SMSBOWER_PRICE_RETRY_DELAY_SEC = 10.0
 
 # 5SIM
 FIVESIM_ENABLED = False
@@ -428,6 +432,7 @@ def reload_all_configs(new_config_dict=None):
     global HERO_SMS_ENABLED, HERO_SMS_API_KEY, HERO_SMS_BASE_URL, HERO_SMS_COUNTRY, HERO_SMS_SERVICE
     global HERO_SMS_AUTO_PICK_COUNTRY, HERO_SMS_REUSE_PHONE, HERO_SMS_MAX_PRICE, HERO_SMS_VERIFY_ON_REGISTER
     global HERO_SMS_MIN_BALANCE, HERO_SMS_MAX_TRIES, HERO_SMS_POLL_TIMEOUT_SEC
+    global HERO_SMS_PRICE_RETRY_COUNT, HERO_SMS_PRICE_RETRY_DELAY_SEC
     global AI_API_BASE, AI_API_KEY, AI_MODEL, AI_ENABLE_PROFILE
     global CPA_AUTO_CHECK, SUB2API_AUTO_CHECK
     global TG_BOT
@@ -451,6 +456,7 @@ def reload_all_configs(new_config_dict=None):
     global SMSBOWER_ENABLED, SMSBOWER_API_KEY, SMSBOWER_BASE_URL, SMSBOWER_COUNTRY, SMSBOWER_SERVICE
     global SMSBOWER_AUTO_PICK_COUNTRY, SMSBOWER_VERIFY_ON_REGISTER, SMSBOWER_REUSE_PHONE
     global SMSBOWER_MAX_PRICE, SMSBOWER_MIN_BALANCE, SMSBOWER_MAX_TRIES, SMSBOWER_POLL_TIMEOUT_SEC, SMSBOWER_MIN_PRICE
+    global SMSBOWER_PRICE_RETRY_COUNT, SMSBOWER_PRICE_RETRY_DELAY_SEC
     global FIVESIM_ENABLED, FIVESIM_API_KEY, FIVESIM_SERVICE, FIVESIM_COUNTRY
     global FIVESIM_AUTO_PICK_COUNTRY, FIVESIM_VERIFY_ON_REGISTER, FIVESIM_REUSE_PHONE
     global FIVESIM_MAX_PRICE, FIVESIM_MIN_PRICE, FIVESIM_MIN_BALANCE
@@ -764,6 +770,16 @@ def reload_all_configs(new_config_dict=None):
     except:
         HERO_SMS_POLL_TIMEOUT_SEC = 120
 
+    try:
+        HERO_SMS_PRICE_RETRY_COUNT = int(_hero_sms_conf.get("price_retry_count", 6))
+    except:
+        HERO_SMS_PRICE_RETRY_COUNT = 6
+
+    try:
+        HERO_SMS_PRICE_RETRY_DELAY_SEC = float(_hero_sms_conf.get("price_retry_delay_sec", 10.0))
+    except:
+        HERO_SMS_PRICE_RETRY_DELAY_SEC = 10.0
+
     _smsbower = _c.get("smsbower", {})
     SMSBOWER_ENABLED = safe_bool(_smsbower.get("enabled", False), default=False)
     SMSBOWER_API_KEY = str(_smsbower.get("api_key") or "").strip()
@@ -778,6 +794,8 @@ def reload_all_configs(new_config_dict=None):
     SMSBOWER_MAX_TRIES = safe_int(_smsbower.get("max_tries", 3), default=3)
     SMSBOWER_POLL_TIMEOUT_SEC = safe_int(_smsbower.get("poll_timeout_sec", 120), default=120)
     SMSBOWER_MIN_PRICE = safe_float(_smsbower.get("min_price", 0.05), default=0.05)
+    SMSBOWER_PRICE_RETRY_COUNT = safe_int(_smsbower.get("price_retry_count", 6), default=6)
+    SMSBOWER_PRICE_RETRY_DELAY_SEC = safe_float(_smsbower.get("price_retry_delay_sec", 10.0), default=10.0)
     SMSBOWER_REUSE_MAX = safe_int(_smsbower.get("reuse_max", 2), default=2)
 
     _fivesim = _c.get("fivesim", {})
