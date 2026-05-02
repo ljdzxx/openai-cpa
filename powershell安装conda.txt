@@ -1,0 +1,25 @@
+# powershell安装conda
+winget install Anaconda.Miniconda3
+
+# 查conda的安装路径
+$paths = @(
+    "$env:USERPROFILE\miniconda3\Scripts\conda.exe",
+    "$env:USERPROFILE\anaconda3\Scripts\conda.exe",
+    "C:\ProgramData\miniconda3\Scripts\conda.exe",
+    "C:\ProgramData\anaconda3\Scripts\conda.exe"
+)
+
+$paths | Where-Object { Test-Path $_ }
+
+# 把conda的执行文件设置到系统PATH
+& "C:\Users\ljdzxx\miniconda3\Scripts\conda.exe" init powershell
+
+#继续做完以下初始化动作
+conda init powershell
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/msys2
+conda create -n py312 python=3.12 -y
+conda activate py312
+python --version
+
