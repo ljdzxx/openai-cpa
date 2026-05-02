@@ -1,8 +1,14 @@
 
 :: If requirements.txt changed, update dependencies inside the wfxl conda env first.
-conda run --no-capture-output -n wfxl python -m pip install --upgrade -r requirements.txt
+#conda run --no-capture-output -n wfxl python -m pip install --upgrade -r requirements.txt
+conda run --no-capture-output -n py312 python -m pip install --upgrade -r requirements.txt
+
 :: If the environment is still broken, force reinstall manually:
-:: conda run --no-capture-output -n wfxl python -m pip install --upgrade --force-reinstall -r requirements.txt
+#conda run --no-capture-output -n wfxl python -m pip install --upgrade --force-reinstall -r requirements.txt
+conda run --no-capture-output -n py312 python -m pip install --upgrade --force-reinstall -r requirements.txt
 
 conda run --no-capture-output -n wfxl python --version
+conda run --no-capture-output -n py312 python --version
+
 conda run --no-capture-output -n wfxl python wfxl_openai_regst.py
+conda run --no-capture-output -n py312 python wfxl_openai_regst.py
